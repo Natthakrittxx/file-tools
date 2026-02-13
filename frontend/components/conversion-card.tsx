@@ -70,7 +70,7 @@ export function ConversionCard({
         )}
         {status === "completed" && downloadUrl && (
           <Button asChild>
-            <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+            <a href={downloadUrl} download>
               Download
             </a>
           </Button>

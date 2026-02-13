@@ -35,7 +35,12 @@ function timeAgo(dateStr: string): string {
 async function handleDownload(id: string) {
   try {
     const { download_url } = await getDownloadUrl(id);
-    window.open(download_url, "_blank");
+    const a = document.createElement("a");
+    a.href = download_url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } catch {
     // ignore
   }

@@ -36,3 +36,18 @@ export interface ConversionResult {
 export interface DownloadResponse {
   download_url: string;
 }
+
+export type CompressibleFormat = "jpg" | "png" | "pdf";
+
+export type CompressionStatusType = "processing" | "completed" | "failed";
+
+export interface CompressionResponse {
+  id: string;
+  status: CompressionStatusType;
+  original_filename: string;
+  source_format: string;
+  original_size_bytes: number;
+  target_size_bytes: number;
+  compressed_size_bytes?: number | null;
+  error_message?: string | null;
+}

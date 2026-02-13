@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from starlette.requests import Request
 
 from app.config import settings
-from app.routers import convert, download, health
+from app.routers import compress, convert, download, health
 
 logger = logging.getLogger(__name__)
 
@@ -39,4 +39,5 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 app.include_router(health.router, prefix="/api")
 app.include_router(convert.router, prefix="/api")
+app.include_router(compress.router, prefix="/api")
 app.include_router(download.router, prefix="/api")

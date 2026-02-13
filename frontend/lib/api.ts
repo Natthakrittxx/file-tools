@@ -1,4 +1,5 @@
 import type {
+  CompressionResponse,
   ConversionResponse,
   ConversionResult,
   DownloadResponse,
@@ -51,5 +52,28 @@ export async function getDownloadUrl(
   conversionId: string,
 ): Promise<DownloadResponse> {
   const response = await fetch(`${API_BASE}/download/${conversionId}`);
+  return handleResponse<DownloadResponse>(response);
+}
+
+export async function compressFile(
+  file: File,
+  targetSizeBytes: number,
+): Promise<CompressionResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("target_size_bytes", String(targetSizeBytes));
+
+  const response = await fetch(`${API_BASE}/compress`, {
+    method: "POST",
+    body: formData,
+  });
+
+  return handleResponse<CompressionResponse>(response);
+}
+
+export async function getCompressionDownloadUrl(
+  compressionId: string,
+): Promise<DownloadResponse> {
+  const response = await fetch(`${API_BASE}/download/compression/${compressionId}`);
   return handleResponse<DownloadResponse>(response);
 }

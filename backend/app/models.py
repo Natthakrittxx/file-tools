@@ -67,6 +67,26 @@ FORMAT_TO_EXTENSION: dict[FileFormat, str] = {
     FileFormat.TXT: ".txt",
 }
 
+class CompressionStatus(str, Enum):
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class CompressionResponse(BaseModel):
+    id: str
+    status: CompressionStatus
+    original_filename: str
+    source_format: str
+    original_size_bytes: int
+    target_size_bytes: int
+    compressed_size_bytes: int | None = None
+    error_message: str | None = None
+
+
+COMPRESSIBLE_FORMATS: set[FileFormat] = {FileFormat.JPG, FileFormat.PNG, FileFormat.PDF}
+
+
 MIME_TO_FORMAT: dict[str, FileFormat] = {
     "image/jpeg": FileFormat.JPG,
     "image/png": FileFormat.PNG,

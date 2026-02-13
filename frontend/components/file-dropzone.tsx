@@ -9,9 +9,11 @@ const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 interface FileDropzoneProps {
   onFileSelected: (file: File) => void;
   disabled?: boolean;
+  accept?: Record<string, string[]>;
+  helpText?: string;
 }
 
-export function FileDropzone({ onFileSelected, disabled }: FileDropzoneProps) {
+export function FileDropzone({ onFileSelected, disabled, accept, helpText }: FileDropzoneProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
@@ -24,7 +26,7 @@ export function FileDropzone({ onFileSelected, disabled }: FileDropzoneProps) {
   const { getRootProps, getInputProps, isDragActive, fileRejections } =
     useDropzone({
       onDrop,
-      accept: ACCEPT_MAP,
+      accept: accept || ACCEPT_MAP,
       maxSize: MAX_SIZE,
       multiple: false,
       disabled,
@@ -53,7 +55,7 @@ export function FileDropzone({ onFileSelected, disabled }: FileDropzoneProps) {
               Drag & drop a file here, or click to select
             </p>
             <p className="text-xs text-muted-foreground">
-              Supports JPG, PNG, GIF, SVG, PDF, DOCX, PPTX, TXT (max 50MB)
+              {helpText || "Supports JPG, PNG, GIF, SVG, PDF, DOCX, PPTX, TXT (max 50MB)"}
             </p>
           </>
         )}

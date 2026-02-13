@@ -30,3 +30,29 @@ async def download(
 
     url = create_download_url(client, record["converted_storage_path"])
     return {"download_url": url}
+
+
+@router.get("/download/compression/{compression_id}")
+async def download_compressed(
+    compression_id: str,
+    client=Depends(get_supabase_client),
+):
+    result = (
+        client.table("compression_logs")
+        .select("compressed_storage_path, status")
+        .eq("id", compression_id)
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Compression not found")
+
+    record = result.data[0]
+    if record["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Compression is not completed")
+
+    if not record["compressed_storage_path"]:
+        raise HTTPException(status_code=404, detail="Compressed file not found")
+
+    url = create_download_url(client, record["compressed_storage_path"])
+    return {"download_url": url}

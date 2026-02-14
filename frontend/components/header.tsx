@@ -1,16 +1,44 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ArrowLeftRight, Minimize2, Clock, FileText } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+const navLinks = [
+  { href: "/convert", label: "Convert", icon: ArrowLeftRight },
+  { href: "/compress", label: "Compress", icon: Minimize2 },
+  { href: "/history", label: "History", icon: Clock },
+] as const;
+
 export function Header() {
+  const pathname = usePathname();
+
   return (
-    <header className="border-b">
+    <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
-          <h1 className="text-lg font-semibold">File Converter</h1>
-        </div>
-        <ThemeToggle />
+        <Link href="/" className="flex items-center gap-2">
+          <FileText className="h-6 w-6 text-teal" />
+          <span className="text-lg font-semibold">FileForge</span>
+        </Link>
+
+        <nav className="flex items-center gap-1">
+          {navLinks.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm transition-colors hover:text-foreground ${
+                pathname === href
+                  ? "text-teal font-medium"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{label}</span>
+            </Link>
+          ))}
+          <ThemeToggle />
+        </nav>
       </div>
     </header>
   );

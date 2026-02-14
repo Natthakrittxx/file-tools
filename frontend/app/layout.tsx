@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "sonner";
+import { Header } from "@/components/header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -15,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "File Converter",
-  description: "Convert files between PDF, DOCX, TXT, PPTX, JPG, PNG, GIF, and SVG",
+  title: "FileForge — Convert & Compress Your Files",
+  description: "A fast, reliable utility for converting image formats and compressing file sizes. Upload, convert, and download — simple and secure.",
 };
 
 export default function RootLayout({
@@ -30,7 +31,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <div className="flex-1">{children}</div>
+          </div>
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>

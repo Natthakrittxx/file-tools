@@ -77,3 +77,17 @@ export async function getCompressionDownloadUrl(
   const response = await fetch(`${API_BASE}/download/compression/${compressionId}`);
   return handleResponse<DownloadResponse>(response);
 }
+
+export async function downloadFile(url: string, filename: string): Promise<void> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Download failed: ${response.statusText}`);
+  const blob = await response.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+}

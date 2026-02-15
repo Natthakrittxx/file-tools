@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getDownloadUrl } from "@/lib/api";
+import { downloadFile, getDownloadUrl } from "@/lib/api";
 import type { ConversionResult } from "@/types";
 
 interface ConversionHistoryProps {
@@ -32,15 +32,11 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-async function handleDownload(id: string) {
+async function handleDownload(item: ConversionResult) {
   try {
-    const { download_url } = await getDownloadUrl(id);
-    const a = document.createElement("a");
-    a.href = download_url;
-    a.download = "";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const { download_url } = await getDownloadUrl(item.id);
+    const basename = item.original_filename.replace(/\.[^.]+$/, "");
+    await downloadFile(download_url, `${basename}.${item.target_format}`);
   } catch {
     // ignore
   }
@@ -95,7 +91,7 @@ export function ConversionHistory({
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-xs"
-                  onClick={() => handleDownload(item.id)}
+                  onClick={() => handleDownload(item)}
                 >
                   Download
                 </Button>

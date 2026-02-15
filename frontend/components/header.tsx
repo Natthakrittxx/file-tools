@@ -19,7 +19,7 @@ export function Header() {
       <div className="container mx-auto flex items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
           <FileText className="h-6 w-6 text-teal" />
-          <span className="text-lg font-semibold">FileForge</span>
+          <span className="text-lg font-semibold">FileTools</span>
         </Link>
 
         <nav className="flex items-center gap-1">

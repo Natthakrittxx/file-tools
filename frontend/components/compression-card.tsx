@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { downloadFile } from "@/lib/api";
 
 interface CompressionCardProps {
   filename: string;
@@ -79,10 +80,10 @@ export function CompressionCard({
           </Button>
         )}
         {status === "completed" && downloadUrl && (
-          <Button asChild>
-            <a href={downloadUrl} download>
-              Download
-            </a>
+          <Button
+            onClick={() => downloadFile(downloadUrl, filename)}
+          >
+            Download
           </Button>
         )}
         {(status === "completed" || status === "failed") && (

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { downloadFile } from "@/lib/api";
 
 interface ConversionCardProps {
   filename: string;
@@ -69,10 +70,13 @@ export function ConversionCard({
           </Button>
         )}
         {status === "completed" && downloadUrl && (
-          <Button asChild>
-            <a href={downloadUrl} download>
-              Download
-            </a>
+          <Button
+            onClick={() => {
+              const basename = filename.replace(/\.[^.]+$/, "");
+              downloadFile(downloadUrl, `${basename}.${targetFormat}`);
+            }}
+          >
+            Download
           </Button>
         )}
         {(status === "completed" || status === "failed") && (

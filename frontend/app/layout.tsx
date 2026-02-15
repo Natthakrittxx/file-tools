@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FileForge — Convert & Compress Your Files",
+  title: "FileTools — Convert & Compress Your Files",
   description: "A fast, reliable utility for converting image formats and compressing file sizes. Upload, convert, and download — simple and secure.",
 };
 

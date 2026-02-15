@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedShinyText } from "@/components/ui/animated-shiny-text";
 
 export function HeroSection() {
   return (
-    <section className="flex flex-col items-center justify-center px-4 py-24 text-center">
+    <section className="flex flex-col items-center justify-center px-4 py-8 text-center">
      
 
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
@@ -23,7 +24,7 @@ export function HeroSection() {
           className="rounded-full bg-teal text-teal-foreground hover:bg-teal/90"
           asChild
         >
-          <Link href="/convert">Converting Files</Link>
+          <Link href="/convert"><AnimatedShinyText>Converting Files</AnimatedShinyText></Link>
         </Button>
         <Button
           size="lg"
@@ -31,7 +32,7 @@ export function HeroSection() {
           className="rounded-full"
           asChild
         >
-          <Link href="/compress">Compress Files</Link>
+          <Link href="/compress"><AnimatedShinyText>Compress Files</AnimatedShinyText></Link>
         </Button>
       </div>
     </section>

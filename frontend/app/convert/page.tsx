@@ -3,9 +3,15 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { ArrowLeftRight } from "lucide-react";
+import dynamic from "next/dynamic";
 import { FileDropzone } from "@/components/file-dropzone";
 import { FormatSelector } from "@/components/format-selector";
 import { ConversionCard } from "@/components/conversion-card";
+
+const PdfPageSelector = dynamic(
+  () => import("@/components/pdf-page-selector").then((m) => m.PdfPageSelector),
+  { ssr: false },
+);
 import { useFileConversion } from "@/hooks/use-file-conversion";
 import { useConversionHistory } from "@/hooks/use-conversion-history";
 
@@ -52,6 +58,13 @@ export default function ConvertPage() {
                   disabled={conversion.status === "converting"}
                 />
               </div>
+              {conversion.isPdfToImage && conversion.status === "idle" && (
+                <PdfPageSelector
+                  file={conversion.file!}
+                  selectedPages={conversion.selectedPages}
+                  onSelectionChange={conversion.setSelectedPages}
+                />
+              )}
               <ConversionCard
                 filename={conversion.file.name}
                 sourceFormat={conversion.sourceFormat || ""}
@@ -62,6 +75,11 @@ export default function ConvertPage() {
                 downloadUrl={conversion.downloadUrl}
                 onConvert={conversion.convert}
                 onReset={conversion.reset}
+                selectedPageCount={
+                  conversion.isPdfToImage
+                    ? conversion.selectedPages?.length ?? null
+                    : undefined
+                }
               />
             </>
           )}

@@ -52,7 +52,10 @@ def get_supported_targets(source: FileFormat) -> list[FileFormat]:
 
 
 async def convert_file(
-    input_bytes: bytes, source: FileFormat, target: FileFormat
+    input_bytes: bytes,
+    source: FileFormat,
+    target: FileFormat,
+    selected_pages: list[int] | None = None,
 ) -> bytes:
     """Run the appropriate converter. Raises ValueError if unsupported."""
     converter = CONVERSION_MATRIX.get((source, target))
@@ -61,7 +64,10 @@ async def convert_file(
             f"Conversion from {source.value} to {target.value} is not supported"
         )
 
-    result = converter(input_bytes, source, target)
+    if converter is convert_pdf_to_image and selected_pages is not None:
+        result = converter(input_bytes, source, target, selected_pages=selected_pages)
+    else:
+        result = converter(input_bytes, source, target)
 
     # Handle async converters (like libreoffice)
     if asyncio.iscoroutine(result):

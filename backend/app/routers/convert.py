@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+import json
+
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 
 from app.config import settings
 from app.dependencies import get_supabase_client
@@ -21,6 +23,7 @@ router = APIRouter()
 async def convert(
     file: UploadFile,
     target_format: FileFormat,
+    selected_pages: str | None = Form(default=None),
     client=Depends(get_supabase_client),
 ):
     # Read file
@@ -51,6 +54,21 @@ async def convert(
             f"Supported targets: {[t.value for t in supported]}",
         )
 
+    # Parse selected_pages
+    parsed_pages: list[int] | None = None
+    if selected_pages is not None:
+        try:
+            parsed_pages = json.loads(selected_pages)
+            if not isinstance(parsed_pages, list) or not all(
+                isinstance(p, int) for p in parsed_pages
+            ):
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            raise HTTPException(
+                status_code=400,
+                detail="selected_pages must be a JSON array of integers",
+            )
+
     # Create conversion log entry
     log_entry = {
         "original_filename": filename,
@@ -68,7 +86,9 @@ async def convert(
         upload_file(client, original_path, file_bytes, file.content_type or "application/octet-stream")
 
         # Convert
-        converted_bytes = await convert_file(file_bytes, source_format, target_format)
+        converted_bytes = await convert_file(
+            file_bytes, source_format, target_format, selected_pages=parsed_pages
+        )
 
         # Upload converted
         base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
@@ -88,9 +108,17 @@ async def convert(
             source_format == FileFormat.PDF
             and target_format in (FileFormat.JPG, FileFormat.PNG, FileFormat.GIF)
         )
-        if is_pdf_to_image:
+        is_single_page = (
+            is_pdf_to_image
+            and parsed_pages is not None
+            and len(parsed_pages) == 1
+        )
+        if is_pdf_to_image and not is_single_page:
             converted_name = base_name + ".zip"
             content_type = "application/zip"
+        elif is_single_page:
+            converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
+            content_type = content_type_map[target_format]
         else:
             converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
             content_type = content_type_map[target_format]

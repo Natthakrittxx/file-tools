@@ -30,9 +30,13 @@ async function handleResponse<T>(response: Response): Promise<T> {
 export async function convertFile(
   file: File,
   targetFormat: FileFormat,
+  selectedPages?: number[],
 ): Promise<ConversionResponse> {
   const formData = new FormData();
   formData.append("file", file);
+  if (selectedPages !== undefined) {
+    formData.append("selected_pages", JSON.stringify(selectedPages));
+  }
 
   const response = await fetch(
     `${API_BASE}/convert?target_format=${targetFormat}`,

@@ -10,6 +10,7 @@ interface ConversionState {
   sourceFormat: FileFormat | null;
   targetFormat: FileFormat | null;
   availableTargets: FileFormat[];
+  selectedPages: number[] | null;
   status: "idle" | "converting" | "completed" | "failed";
   result: ConversionResponse | null;
   downloadUrl: string | null;
@@ -22,6 +23,7 @@ const initialState: ConversionState = {
   sourceFormat: null,
   targetFormat: null,
   availableTargets: [],
+  selectedPages: null,
   status: "idle",
   result: null,
   downloadUrl: null,
@@ -51,7 +53,11 @@ export function useFileConversion() {
   }, []);
 
   const setTargetFormat = useCallback((format: FileFormat) => {
-    setState((prev) => ({ ...prev, targetFormat: format }));
+    setState((prev) => ({ ...prev, targetFormat: format, selectedPages: null }));
+  }, []);
+
+  const setSelectedPages = useCallback((pages: number[] | null) => {
+    setState((prev) => ({ ...prev, selectedPages: pages }));
   }, []);
 
   const convert = useCallback(async () => {
@@ -67,7 +73,11 @@ export function useFileConversion() {
     try {
       setState((prev) => ({ ...prev, progress: 50 }));
 
-      const result = await convertFile(state.file!, state.targetFormat!);
+      const result = await convertFile(
+        state.file!,
+        state.targetFormat!,
+        state.selectedPages ?? undefined,
+      );
 
       if (result.status === "failed") {
         setState((prev) => ({
@@ -98,11 +108,24 @@ export function useFileConversion() {
         progress: 0,
       }));
     }
-  }, [state.file, state.targetFormat]);
+  }, [state.file, state.targetFormat, state.selectedPages]);
 
   const reset = useCallback(() => {
     setState(initialState);
   }, []);
 
-  return { ...state, setFile, setTargetFormat, convert, reset };
+  const isPdfToImage =
+    state.sourceFormat === "pdf" &&
+    state.targetFormat !== null &&
+    ["jpg", "png", "gif"].includes(state.targetFormat);
+
+  return {
+    ...state,
+    isPdfToImage,
+    setFile,
+    setTargetFormat,
+    setSelectedPages,
+    convert,
+    reset,
+  };
 }

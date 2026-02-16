@@ -15,6 +15,7 @@ interface ConversionCardProps {
   downloadUrl: string | null;
   onConvert: () => void;
   onReset: () => void;
+  selectedPageCount?: number | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -33,7 +34,17 @@ export function ConversionCard({
   downloadUrl,
   onConvert,
   onReset,
+  selectedPageCount,
 }: ConversionCardProps) {
+  const isPdfToImage = sourceFormat === "pdf" && ["jpg", "png", "gif"].includes(targetFormat);
+  const isSinglePage = isPdfToImage && selectedPageCount === 1;
+
+  function getConvertButtonText() {
+    if (!isPdfToImage || selectedPageCount === undefined) return "Convert";
+    if (selectedPageCount === null) return "Convert All Pages";
+    if (selectedPageCount === 0) return "Select pages to convert";
+    return `Convert ${selectedPageCount} Page${selectedPageCount > 1 ? "s" : ""}`;
+  }
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -60,8 +71,16 @@ export function ConversionCard({
 
       <div className="flex gap-2">
         {status === "idle" && (
-          <Button onClick={onConvert} disabled={!targetFormat}>
-            Convert
+          <Button
+            onClick={onConvert}
+            disabled={!targetFormat || (isPdfToImage && selectedPageCount === 0)}
+          >
+            {getConvertButtonText()}
+          </Button>
+        )}
+        {status === "idle" && isPdfToImage && (
+          <Button variant="outline" onClick={onReset}>
+            Cancel
           </Button>
         )}
         {status === "converting" && (
@@ -73,8 +92,7 @@ export function ConversionCard({
           <Button
             onClick={() => {
               const basename = filename.replace(/\.[^.]+$/, "");
-              const isPdfToImage = sourceFormat === "pdf" && ["jpg", "png", "gif"].includes(targetFormat);
-              const ext = isPdfToImage ? "zip" : targetFormat;
+              const ext = isPdfToImage && !isSinglePage ? "zip" : targetFormat;
               downloadFile(downloadUrl, `${basename}.${ext}`);
             }}
           >

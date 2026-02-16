@@ -1,5 +1,6 @@
 import type {
   CompressionResponse,
+  CompressionResult,
   ConversionResponse,
   ConversionResult,
   DownloadResponse,
@@ -46,6 +47,13 @@ export async function getConversions(
 ): Promise<ConversionResult[]> {
   const response = await fetch(`${API_BASE}/conversions?limit=${limit}`);
   return handleResponse<ConversionResult[]>(response);
+}
+
+export async function getCompressions(
+  limit = 20,
+): Promise<CompressionResult[]> {
+  const response = await fetch(`${API_BASE}/compressions?limit=${limit}`);
+  return handleResponse<CompressionResult[]>(response);
 }
 
 export async function getDownloadUrl(

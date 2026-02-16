@@ -73,7 +73,9 @@ export function ConversionCard({
           <Button
             onClick={() => {
               const basename = filename.replace(/\.[^.]+$/, "");
-              downloadFile(downloadUrl, `${basename}.${targetFormat}`);
+              const isPdfToImage = sourceFormat === "pdf" && ["jpg", "png", "gif"].includes(targetFormat);
+              const ext = isPdfToImage ? "zip" : targetFormat;
+              downloadFile(downloadUrl, `${basename}.${ext}`);
             }}
           >
             Download

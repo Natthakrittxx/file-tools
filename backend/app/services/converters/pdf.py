@@ -1,6 +1,7 @@
 import io
 import os
 import tempfile
+import zipfile
 
 from pdf2image import convert_from_bytes
 from PIL import Image
@@ -8,30 +9,37 @@ from PIL import Image
 from app.config import settings
 from app.models import FileFormat
 
+MAX_PDF_PAGES = 50
+
 
 def convert_pdf_to_image(
     input_bytes: bytes, source: FileFormat, target: FileFormat
 ) -> bytes:
-    """Convert first page of PDF to JPG, PNG, or GIF."""
-    images = convert_from_bytes(input_bytes, first_page=1, last_page=1, dpi=200)
+    """Convert all pages of PDF to images and return as a ZIP archive."""
+    images = convert_from_bytes(input_bytes, dpi=200)
     if not images:
         raise ValueError("Could not extract pages from PDF")
-
-    img = images[0]
+    if len(images) > MAX_PDF_PAGES:
+        raise ValueError(f"PDF has {len(images)} pages, maximum is {MAX_PDF_PAGES}")
 
     format_map = {
-        FileFormat.JPG: ("JPEG", "RGB"),
-        FileFormat.PNG: ("PNG", None),
-        FileFormat.GIF: ("GIF", "RGB"),
+        FileFormat.JPG: ("JPEG", "RGB", "jpg"),
+        FileFormat.PNG: ("PNG", None, "png"),
+        FileFormat.GIF: ("GIF", "RGB", "gif"),
     }
 
-    pil_format, mode = format_map[target]
-    if mode and img.mode != mode:
-        img = img.convert(mode)
+    pil_format, mode, ext = format_map[target]
 
-    output = io.BytesIO()
-    img.save(output, format=pil_format)
-    return output.getvalue()
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        for i, img in enumerate(images, start=1):
+            if mode and img.mode != mode:
+                img = img.convert(mode)
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format=pil_format)
+            zf.writestr(f"page_{i}.{ext}", img_buffer.getvalue())
+
+    return zip_buffer.getvalue()
 
 
 def convert_pdf_to_docx(

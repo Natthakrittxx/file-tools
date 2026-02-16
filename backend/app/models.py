@@ -84,6 +84,21 @@ class CompressionResponse(BaseModel):
     error_message: str | None = None
 
 
+class CompressionResult(BaseModel):
+    id: str
+    original_filename: str
+    source_format: str
+    original_size_bytes: int
+    target_size_bytes: int
+    compressed_size_bytes: int | None = None
+    status: str
+    error_message: str | None = None
+    original_storage_path: str | None = None
+    compressed_storage_path: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
 COMPRESSIBLE_FORMATS: set[FileFormat] = {FileFormat.JPG, FileFormat.PNG, FileFormat.PDF}
 
 

@@ -72,8 +72,6 @@ async def convert(
 
         # Upload converted
         base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
-        converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
-        converted_path = f"converted/{conversion_id}/{converted_name}"
 
         content_type_map = {
             FileFormat.JPG: "image/jpeg",
@@ -85,7 +83,20 @@ async def convert(
             FileFormat.PPTX: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             FileFormat.TXT: "text/plain",
         }
-        upload_file(client, converted_path, converted_bytes, content_type_map[target_format])
+
+        is_pdf_to_image = (
+            source_format == FileFormat.PDF
+            and target_format in (FileFormat.JPG, FileFormat.PNG, FileFormat.GIF)
+        )
+        if is_pdf_to_image:
+            converted_name = base_name + ".zip"
+            content_type = "application/zip"
+        else:
+            converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
+            content_type = content_type_map[target_format]
+
+        converted_path = f"converted/{conversion_id}/{converted_name}"
+        upload_file(client, converted_path, converted_bytes, content_type)
 
         # Update log
         client.table("conversion_logs").update(

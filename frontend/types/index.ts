@@ -51,3 +51,18 @@ export interface CompressionResponse {
   compressed_size_bytes?: number | null;
   error_message?: string | null;
 }
+
+export interface CompressionResult {
+  id: string;
+  original_filename: string;
+  source_format: string;
+  original_size_bytes: number;
+  target_size_bytes: number;
+  compressed_size_bytes?: number | null;
+  status: string;
+  error_message?: string | null;
+  original_storage_path?: string | null;
+  compressed_storage_path?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}

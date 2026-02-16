@@ -5,6 +5,7 @@ from app.dependencies import get_supabase_client
 from app.models import (
     COMPRESSIBLE_FORMATS,
     CompressionResponse,
+    CompressionResult,
     CompressionStatus,
 )
 from app.services.compressor import compress_file
@@ -19,6 +20,21 @@ CONTENT_TYPE_MAP = {
     "png": "image/png",
     "pdf": "application/pdf",
 }
+
+
+@router.get("/compressions", response_model=list[CompressionResult])
+async def list_compressions(
+    limit: int = 20,
+    client=Depends(get_supabase_client),
+):
+    result = (
+        client.table("compression_logs")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data
 
 
 @router.post("/compress", response_model=CompressionResponse)

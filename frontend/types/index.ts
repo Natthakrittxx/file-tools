@@ -37,6 +37,13 @@ export interface DownloadResponse {
   download_url: string;
 }
 
+export interface SSEProgress {
+  phase: "uploading_original" | "converting" | "uploading_result" | "completed" | "failed";
+  progress: number;
+  message: string;
+  error?: string;
+}
+
 export type CompressibleFormat = "jpg" | "png" | "pdf";
 
 export type CompressionStatusType = "processing" | "completed" | "failed";

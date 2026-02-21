@@ -11,8 +11,17 @@ def sanitize_filename(filename: str, max_length: int = 200) -> str:
     # Normalize unicode
     filename = unicodedata.normalize("NFKD", filename)
 
+    # Strip non-ASCII characters
+    filename = filename.encode("ascii", "ignore").decode("ascii")
+
     # Replace unsafe characters
     filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", filename)
+
+    # Replace spaces with underscores
+    filename = filename.replace(" ", "_")
+
+    # Collapse consecutive underscores
+    filename = re.sub(r"_+", "_", filename)
 
     # Remove leading/trailing dots and spaces
     filename = filename.strip(". ")

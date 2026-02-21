@@ -9,19 +9,16 @@ interface ConversionCardProps {
   filename: string;
   sourceFormat: string;
   targetFormat: string;
-  status: "idle" | "converting" | "completed" | "failed";
+  status: "idle" | "uploading" | "converting" | "completed" | "failed";
   progress: number;
   error: string | null;
   downloadUrl: string | null;
   onConvert: () => void;
   onReset: () => void;
   selectedPageCount?: number | null;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  uploadProgress?: number;
+  conversionProgress?: number;
+  progressMessage?: string;
 }
 
 export function ConversionCard({
@@ -35,6 +32,9 @@ export function ConversionCard({
   onConvert,
   onReset,
   selectedPageCount,
+  uploadProgress = 0,
+  conversionProgress = 0,
+  progressMessage = "",
 }: ConversionCardProps) {
   const isPdfToImage = sourceFormat === "pdf" && ["jpg", "png", "gif"].includes(targetFormat);
   const isSinglePage = isPdfToImage && selectedPageCount === 1;
@@ -45,6 +45,9 @@ export function ConversionCard({
     if (selectedPageCount === 0) return "Select pages to convert";
     return `Convert ${selectedPageCount} Page${selectedPageCount > 1 ? "s" : ""}`;
   }
+
+  const isProcessing = status === "uploading" || status === "converting";
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -61,8 +64,13 @@ export function ConversionCard({
         </div>
       </div>
 
-      {status === "converting" && (
-        <Progress value={progress} className="h-2" />
+      {isProcessing && (
+        <div className="space-y-1">
+          <Progress value={progress} className="h-2" />
+          {progressMessage && (
+            <p className="text-xs text-muted-foreground">{progressMessage}</p>
+          )}
+        </div>
       )}
 
       {error && (
@@ -81,6 +89,11 @@ export function ConversionCard({
         {status === "idle" && isPdfToImage && (
           <Button variant="outline" onClick={onReset}>
             Cancel
+          </Button>
+        )}
+        {status === "uploading" && (
+          <Button disabled>
+            Uploading...
           </Button>
         )}
         {status === "converting" && (

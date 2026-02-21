@@ -46,6 +46,52 @@ export async function convertFile(
   return handleResponse<ConversionResponse>(response);
 }
 
+export function convertFileWithProgress(
+  file: File,
+  targetFormat: FileFormat,
+  onUploadProgress: (percent: number) => void,
+  selectedPages?: number[],
+): { promise: Promise<ConversionResponse>; abort: () => void } {
+  const xhr = new XMLHttpRequest();
+  const formData = new FormData();
+  formData.append("file", file);
+  if (selectedPages !== undefined) {
+    formData.append("selected_pages", JSON.stringify(selectedPages));
+  }
+
+  const promise = new Promise<ConversionResponse>((resolve, reject) => {
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        onUploadProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(xhr.responseText);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(data as ConversionResponse);
+        } else {
+          reject(new ApiError(xhr.status, data.detail || "Request failed"));
+        }
+      } catch {
+        reject(new ApiError(xhr.status, "Invalid response"));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.ontimeout = () => reject(new Error("Upload timed out"));
+
+    xhr.open("POST", `${API_BASE}/convert?target_format=${targetFormat}`);
+    xhr.timeout = 300000; // 5 minutes
+    xhr.send(formData);
+  });
+
+  return { promise, abort: () => xhr.abort() };
+}
+
+export const SSE_BASE = API_BASE;
+
 export async function getConversions(
   limit = 20,
 ): Promise<ConversionResult[]> {

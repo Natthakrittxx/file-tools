@@ -55,7 +55,7 @@ export default function ConvertPage() {
                   targets={conversion.availableTargets}
                   value={conversion.targetFormat}
                   onChange={conversion.setTargetFormat}
-                  disabled={conversion.status === "converting"}
+                  disabled={conversion.status === "converting" || conversion.status === "uploading"}
                 />
               </div>
               {conversion.isPdfToImage && conversion.status === "idle" && (
@@ -80,6 +80,9 @@ export default function ConvertPage() {
                     ? conversion.selectedPages?.length ?? null
                     : undefined
                 }
+                uploadProgress={conversion.uploadProgress}
+                conversionProgress={conversion.conversionProgress}
+                progressMessage={conversion.progressMessage}
               />
             </>
           )}

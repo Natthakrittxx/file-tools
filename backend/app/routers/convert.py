@@ -1,4 +1,6 @@
+import asyncio
 import json
+import logging
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 
@@ -13,10 +15,133 @@ from app.models import (
 )
 from app.services.converter import convert_file, get_supported_targets
 from app.services.storage import upload_file
+from app.services.task_store import TaskPhase, create_task, update_task
 from app.utils.mime import validate_file_type
 from app.utils.sanitize import sanitize_filename
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+async def _run_conversion(
+    conversion_id: str,
+    file_bytes: bytes,
+    filename: str,
+    source_format: FileFormat,
+    target_format: FileFormat,
+    content_type_header: str,
+    parsed_pages: list[int] | None,
+    client,
+) -> None:
+    """Background task that uploads, converts, and updates the DB."""
+    try:
+        # Upload original
+        update_task(
+            conversion_id,
+            phase=TaskPhase.UPLOADING_ORIGINAL,
+            progress=0,
+            message="Uploading original file...",
+        )
+        original_path = f"originals/{conversion_id}/{filename}"
+        upload_file(client, original_path, file_bytes, content_type_header)
+
+        # Convert
+        update_task(
+            conversion_id,
+            phase=TaskPhase.CONVERTING,
+            progress=0,
+            message="Starting conversion...",
+        )
+
+        def progress_cb(progress: int, message: str) -> None:
+            update_task(
+                conversion_id,
+                phase=TaskPhase.CONVERTING,
+                progress=progress,
+                message=message,
+            )
+
+        converted_bytes = await convert_file(
+            file_bytes,
+            source_format,
+            target_format,
+            selected_pages=parsed_pages,
+            progress_cb=progress_cb,
+        )
+
+        # Upload converted
+        update_task(
+            conversion_id,
+            phase=TaskPhase.UPLOADING_RESULT,
+            progress=0,
+            message="Uploading converted file...",
+        )
+
+        base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
+
+        content_type_map = {
+            FileFormat.JPG: "image/jpeg",
+            FileFormat.PNG: "image/png",
+            FileFormat.GIF: "image/gif",
+            FileFormat.SVG: "image/svg+xml",
+            FileFormat.PDF: "application/pdf",
+            FileFormat.DOCX: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            FileFormat.PPTX: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            FileFormat.TXT: "text/plain",
+        }
+
+        is_pdf_to_image = (
+            source_format == FileFormat.PDF
+            and target_format in (FileFormat.JPG, FileFormat.PNG, FileFormat.GIF)
+        )
+        is_single_page = (
+            is_pdf_to_image
+            and parsed_pages is not None
+            and len(parsed_pages) == 1
+        )
+        if is_pdf_to_image and not is_single_page:
+            converted_name = base_name + ".zip"
+            content_type = "application/zip"
+        else:
+            converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
+            content_type = content_type_map[target_format]
+
+        converted_path = f"converted/{conversion_id}/{converted_name}"
+        upload_file(client, converted_path, converted_bytes, content_type)
+
+        # Update log
+        client.table("conversion_logs").update(
+            {
+                "status": ConversionStatus.COMPLETED.value,
+                "original_storage_path": original_path,
+                "converted_storage_path": converted_path,
+            }
+        ).eq("id", conversion_id).execute()
+
+        update_task(
+            conversion_id,
+            phase=TaskPhase.COMPLETED,
+            progress=100,
+            message="Conversion complete",
+        )
+
+    except Exception as e:
+        logger.exception("Conversion %s failed", conversion_id)
+        client.table("conversion_logs").update(
+            {
+                "status": ConversionStatus.FAILED.value,
+                "error_message": str(e),
+            }
+        ).eq("id", conversion_id).execute()
+
+        update_task(
+            conversion_id,
+            phase=TaskPhase.FAILED,
+            progress=0,
+            message="Conversion failed",
+            error=str(e),
+        )
 
 
 @router.post("/convert", response_model=ConversionResponse)
@@ -80,86 +205,28 @@ async def convert(
     result = client.table("conversion_logs").insert(log_entry).execute()
     conversion_id = result.data[0]["id"]
 
-    try:
-        # Upload original
-        original_path = f"originals/{conversion_id}/{filename}"
-        upload_file(client, original_path, file_bytes, file.content_type or "application/octet-stream")
-
-        # Convert
-        converted_bytes = await convert_file(
-            file_bytes, source_format, target_format, selected_pages=parsed_pages
+    # Create task in progress store and launch background conversion
+    create_task(conversion_id)
+    asyncio.create_task(
+        _run_conversion(
+            conversion_id=conversion_id,
+            file_bytes=file_bytes,
+            filename=filename,
+            source_format=source_format,
+            target_format=target_format,
+            content_type_header=file.content_type or "application/octet-stream",
+            parsed_pages=parsed_pages,
+            client=client,
         )
+    )
 
-        # Upload converted
-        base_name = filename.rsplit(".", 1)[0] if "." in filename else filename
-
-        content_type_map = {
-            FileFormat.JPG: "image/jpeg",
-            FileFormat.PNG: "image/png",
-            FileFormat.GIF: "image/gif",
-            FileFormat.SVG: "image/svg+xml",
-            FileFormat.PDF: "application/pdf",
-            FileFormat.DOCX: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            FileFormat.PPTX: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            FileFormat.TXT: "text/plain",
-        }
-
-        is_pdf_to_image = (
-            source_format == FileFormat.PDF
-            and target_format in (FileFormat.JPG, FileFormat.PNG, FileFormat.GIF)
-        )
-        is_single_page = (
-            is_pdf_to_image
-            and parsed_pages is not None
-            and len(parsed_pages) == 1
-        )
-        if is_pdf_to_image and not is_single_page:
-            converted_name = base_name + ".zip"
-            content_type = "application/zip"
-        elif is_single_page:
-            converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
-            content_type = content_type_map[target_format]
-        else:
-            converted_name = base_name + FORMAT_TO_EXTENSION[target_format]
-            content_type = content_type_map[target_format]
-
-        converted_path = f"converted/{conversion_id}/{converted_name}"
-        upload_file(client, converted_path, converted_bytes, content_type)
-
-        # Update log
-        client.table("conversion_logs").update(
-            {
-                "status": ConversionStatus.COMPLETED.value,
-                "original_storage_path": original_path,
-                "converted_storage_path": converted_path,
-            }
-        ).eq("id", conversion_id).execute()
-
-        return ConversionResponse(
-            id=conversion_id,
-            status=ConversionStatus.COMPLETED,
-            original_filename=filename,
-            source_format=source_format.value,
-            target_format=target_format.value,
-        )
-
-    except Exception as e:
-        # Log failure
-        client.table("conversion_logs").update(
-            {
-                "status": ConversionStatus.FAILED.value,
-                "error_message": str(e),
-            }
-        ).eq("id", conversion_id).execute()
-
-        return ConversionResponse(
-            id=conversion_id,
-            status=ConversionStatus.FAILED,
-            original_filename=filename,
-            source_format=source_format.value,
-            target_format=target_format.value,
-            error_message=str(e),
-        )
+    return ConversionResponse(
+        id=conversion_id,
+        status=ConversionStatus.PROCESSING,
+        original_filename=filename,
+        source_format=source_format.value,
+        target_format=target_format.value,
+    )
 
 
 @router.get("/conversions", response_model=list[ConversionResult])
